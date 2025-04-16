@@ -1,13 +1,11 @@
 const express = require('express');
-const cors = require('cors');  // Importamos el paquete cors
+const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Habilitar CORS
-app.use(cors());  // Esto permite solicitudes desde cualquier dominio
-
 // Esto permite leer datos en formato JSON
 app.use(express.json());
+app.use(cors()); // Habilitamos CORS
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -16,21 +14,23 @@ app.get('/', (req, res) => {
 
 // Nueva ruta para crear partida
 app.post('/partida', (req, res) => {
-  const { nombre } = req.body;
+  const { nombre } = req.body;  // Recibimos el nombre del jugador desde la solicitud
 
+  // Validamos si el nombre está presente
   if (!nombre) {
-    return res.status(400).json({ error: 'El nombre del jugador es obligatorio.' });
+    return res.status(400).json({ error: 'El nombre es obligatorio.' });
   }
 
+  // Crear una nueva partida
   const partida = {
-    id: Date.now(), // ID único
-    jugador: nombre,
-    mensaje: `¡Partida creada por ${nombre}!`
+    id: Date.now(), // ID único basado en el tiempo
+    nombre: nombre, // Nombre del jugador
+    mensaje: `¡Partida creada con éxito para ${nombre}!`
   };
 
+  // Enviar la respuesta con los datos de la partida
   res.json(partida);
 });
-
 
 // Iniciar el servidor
 app.listen(PORT, () => {
