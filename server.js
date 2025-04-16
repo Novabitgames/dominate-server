@@ -16,13 +16,21 @@ app.get('/', (req, res) => {
 
 // Nueva ruta para crear partida
 app.post('/partida', (req, res) => {
+  const { nombre } = req.body;
+
+  if (!nombre) {
+    return res.status(400).json({ error: 'El nombre del jugador es obligatorio.' });
+  }
+
   const partida = {
-    id: Date.now(),  // ID único
-    mensaje: '¡Partida creada con éxito!'
+    id: Date.now(), // ID único
+    jugador: nombre,
+    mensaje: `¡Partida creada por ${nombre}!`
   };
 
-  res.json(partida);  // Respondemos con un JSON
+  res.json(partida);
 });
+
 
 // Iniciar el servidor
 app.listen(PORT, () => {
