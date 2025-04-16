@@ -1,60 +1,73 @@
 const express = require('express');
 const cors = require('cors');
-const WebSocket = require('ws');
+const http = require('http');
+const { Server } = require('ws');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Habilitar CORS
 app.use(cors());
-
-// Esto permite leer datos en formato JSON
 app.use(express.json());
 
-const salas = {};  // Almacenamos las salas y los jugadores por ID
+const server = http.createServer(app);
+const wss = new Server({ server });
 
-// Ruta principal
+const salas = {};
+
+wss.on('connection', (ws) => {
+  ws.on('message', (message) => {
+    const data = JSON.parse(message);
+    if (data.tipo === 'unirse') {
+      const { idSala, nombre } = data;
+      if (!salas[idSala]) {
+        salas[idSala] = [];
+      }
+      salas[idSala].push({ nombre, ws });
+      actualizarSala(idSala);
+    } else if (data.tipo === 'salir') {
+      const { idSala, nombre } = data;
+      if (salas[idSala]) {
+        salas[idSala] = salas[idSala].filter(j => j.nombre !== nombre);
+        actualizarSala(idSala);
+      }
+    }
+  });
+
+  ws.on('close', () => {
+    for (const idSala in salas) {
+      salas[idSala] = salas[idSala].filter(j => j.ws !== ws);
+      actualizarSala(idSala);
+    }
+  });
+});
+
+function actualizarSala(idSala) {
+  if (!salas[idSala]) return;
+  const nombres = salas[idSala].map(j => j.nombre);
+  salas[idSala].forEach(j => {
+    j.ws.send(JSON.stringify({ tipo: 'actualizar', jugadores: nombres }));
+  });
+}
+
 app.get('/', (req, res) => {
   res.send('Servidor de Dominate funcionando correctamente!');
 });
 
-// Nueva ruta para crear partida
 app.post('/partida', (req, res) => {
-  const partida = {
-    id: Date.now(),  // ID único
-    mensaje: '¡Partida creada con éxito!'
-  };
-
-  salas[partida.id] = { jugadores: [] };  // Inicializamos la sala
-  res.json(partida);  // Respondemos con un JSON
+  const partidaId = Date.now().toString();
+  salas[partidaId] = [];
+  res.json({ id: partidaId, mensaje: '¡Partida creada con éxito!' });
 });
 
-// Ruta para unirse a partida
-app.get('/partida/:id', (req, res) => {
-  const partidaId = req.params.id;
-  if (salas[partidaId]) {
-    res.status(200).json({ mensaje: "Partida encontrada" });
-  } else {
-    res.status(404).json({ mensaje: "Partida no encontrada" });
+app.post('/unirse', (req, res) => {
+  const { idSala } = req.body;
+  if (!salas[idSala]) {
+    return res.status(404).json({ error: 'ID de sala no válido' });
   }
+  res.json({ mensaje: 'Unido con éxito a la partida' });
 });
 
-// WebSocket para manejar conexiones de jugadores en salas
-const wss = new WebSocket.Server({ noServer: true });
-
-wss.on('connection', (ws, req) => {
-  const partidaId = req.url.split('/')[2];
-  
-  if (!salas[partidaId]) {
-    ws.close();
-    return;
-  }
-
-  salas[partidaId].jugadores.push(ws);
-
-  // Enviar lista de jugadores a todos los clientes conectados
-  const jugadores = salas[partidaId].jugadores.map((s) => s.nombre || 'Jugador');
-  salas[partidaId].jugadores.forEach((s) => {
-    s.send(JSON.stringify({ jugadores }));
-  });
-
-  ws.on('message', (message
+// ⬇️ Este es el final correcto ⬇️
+server.listen(PORT, () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
+});
