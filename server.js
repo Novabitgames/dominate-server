@@ -1,39 +1,72 @@
-
 const express = require('express');
-const cors = require('cors');  
+const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
+
 const PORT = process.env.PORT || 3000;
 
 // Habilitar CORS
-app.use(cors());  
+app.use(cors());
 
 // Esto permite leer datos en formato JSON
 app.use(express.json());
 
-let partidas = {}
+let salas = {};
 
 // Ruta principal
 app.get('/', (req, res) => {
   res.send('Servidor de Dominate funcionando correctamente!');
 });
 
-// Nueva ruta para crear partida
+// Ruta para crear una partida
 app.post('/partida', (req, res) => {
   const partidaId = Date.now();
-  partidas[partidaId] = { id: partidaId, jugadores: [req.body.nombre] };
+  const partida = {
+    id: partidaId,
+    jugadores: []
+  };
+
+  salas[partidaId] = partida;
   res.json({ id: partidaId, mensaje: '¡Partida creada con éxito!' });
 });
 
-// Ruta para unirse a una partida
-app.get('/partida/:id', (req, res) => {
-  const partida = partidas[req.params.id];
-  if (!partida) {
-    return res.status(404).json({ mensaje: 'Partida no encontrada.' });
-  }
-  res.json(partida);
+// Escuchar conexiones de WebSocket
+io.on('connection', (socket) => {
+  console.log('Nuevo jugador conectado');
+
+  socket.on('unirseSala', (partidaId, nombre) => {
+    if (salas[partidaId]) {
+      const sala = salas[partidaId];
+      if (!sala.jugadores.includes(nombre)) {
+        sala.jugadores.push(nombre);
+        socket.join(partidaId);
+        io.to(partidaId).emit('actualizarJugadores', sala.jugadores);
+      }
+    } else {
+      socket.emit('error', 'ID de partida no válido');
+    }
+  });
+
+  socket.on('salirSala', (partidaId, nombre) => {
+    const sala = salas[partidaId];
+    if (sala) {
+      const index = sala.jugadores.indexOf(nombre);
+      if (index !== -1) {
+        sala.jugadores.splice(index, 1);
+        io.to(partidaId).emit('actualizarJugadores', sala.jugadores);
+      }
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Jugador desconectado');
+  });
 });
 
 // Iniciar el servidor
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
