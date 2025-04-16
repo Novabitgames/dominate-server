@@ -3,8 +3,8 @@ const cors = require('cors');  // Importamos el paquete cors
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Habilitamos CORS para permitir solicitudes desde otros dominios (como tu frontend en Netlify)
-app.use(cors());  // Esto permite solicitudes desde cualquier dominio (puedes configurarlo más restringido si es necesario)
+// Habilitar CORS
+app.use(cors());  // Esto permite solicitudes desde cualquier dominio
 
 // Esto permite leer datos en formato JSON
 app.use(express.json());
@@ -16,13 +16,12 @@ app.get('/', (req, res) => {
 
 // Nueva ruta para crear partida
 app.post('/partida', (req, res) => {
-  // Aquí podrías generar un código de partida o lo que quieras
   const partida = {
-    id: Date.now(), // ID único
+    id: Date.now(),  // ID único
     mensaje: '¡Partida creada con éxito!'
   };
 
-  res.json(partida);  // Devolvemos la respuesta como un objeto JSON
+  res.json(partida);  // Respondemos con un JSON
 });
 
 // Iniciar el servidor
