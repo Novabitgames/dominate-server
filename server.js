@@ -6,35 +6,52 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const partidas = {}; // Guardará las partidas y sus jugadores
+let partidas = {}; // Guardaremos partidas simples en memoria
 
-// Ruta de prueba
+// Ruta principal
 app.get('/', (req, res) => {
   res.send('Servidor de Dominate funcionando correctamente!');
 });
 
-// Crear una nueva partida
+// Ruta para crear una partida
 app.post('/partida', (req, res) => {
   const { nombre } = req.body;
 
-  const id = Date.now(); // ID único
-  partidas[id] = [nombre]; // Guardamos al jugador como primer miembro
+  if (!nombre) {
+    return res.status(400).json({ error: 'Nombre requerido' });
+  }
 
-  res.json({ id, mensaje: `Partida creada con éxito por ${nombre}` });
+  const id = Date.now(); // ID único
+
+  partidas[id] = {
+    creador: nombre,
+    jugadores: [nombre]
+  };
+
+  res.json({ id, mensaje: '¡Partida creada con éxito!' });
 });
 
-// Unirse a una partida existente
+// Ruta para unirse a una partida
 app.post('/unirse', (req, res) => {
   const { nombre, id } = req.body;
+
+  if (!nombre || !id) {
+    return res.status(400).json({ error: 'Nombre e ID requeridos' });
+  }
 
   if (!partidas[id]) {
     return res.status(404).json({ error: 'Partida no encontrada' });
   }
 
-  partidas[id].push(nombre); // Agregamos al jugador a la partida
-  res.json({ mensaje: `${nombre} se unió a la partida ${id}` });
+  // Evitar duplicados
+  if (!partidas[id].jugadores.includes(nombre)) {
+    partidas[id].jugadores.push(nombre);
+  }
+
+  res.json({ mensaje: `Jugador ${nombre} unido a la partida ${id}` });
 });
 
+// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
