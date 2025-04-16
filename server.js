@@ -1,73 +1,39 @@
-const express = require('express');
-const cors = require('cors');
-const http = require('http');
-const { Server } = require('ws');
 
+const express = require('express');
+const cors = require('cors');  
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// Habilitar CORS
+app.use(cors());  
+
+// Esto permite leer datos en formato JSON
 app.use(express.json());
 
-const server = http.createServer(app);
-const wss = new Server({ server });
+let partidas = {}
 
-const salas = {};
-
-wss.on('connection', (ws) => {
-  ws.on('message', (message) => {
-    const data = JSON.parse(message);
-    if (data.tipo === 'unirse') {
-      const { idSala, nombre } = data;
-      if (!salas[idSala]) {
-        salas[idSala] = [];
-      }
-      salas[idSala].push({ nombre, ws });
-      actualizarSala(idSala);
-    } else if (data.tipo === 'salir') {
-      const { idSala, nombre } = data;
-      if (salas[idSala]) {
-        salas[idSala] = salas[idSala].filter(j => j.nombre !== nombre);
-        actualizarSala(idSala);
-      }
-    }
-  });
-
-  ws.on('close', () => {
-    for (const idSala in salas) {
-      salas[idSala] = salas[idSala].filter(j => j.ws !== ws);
-      actualizarSala(idSala);
-    }
-  });
-});
-
-function actualizarSala(idSala) {
-  if (!salas[idSala]) return;
-  const nombres = salas[idSala].map(j => j.nombre);
-  salas[idSala].forEach(j => {
-    j.ws.send(JSON.stringify({ tipo: 'actualizar', jugadores: nombres }));
-  });
-}
-
+// Ruta principal
 app.get('/', (req, res) => {
   res.send('Servidor de Dominate funcionando correctamente!');
 });
 
+// Nueva ruta para crear partida
 app.post('/partida', (req, res) => {
-  const partidaId = Date.now().toString();
-  salas[partidaId] = [];
+  const partidaId = Date.now();
+  partidas[partidaId] = { id: partidaId, jugadores: [req.body.nombre] };
   res.json({ id: partidaId, mensaje: '¡Partida creada con éxito!' });
 });
 
-app.post('/unirse', (req, res) => {
-  const { idSala } = req.body;
-  if (!salas[idSala]) {
-    return res.status(404).json({ error: 'ID de sala no válido' });
+// Ruta para unirse a una partida
+app.get('/partida/:id', (req, res) => {
+  const partida = partidas[req.params.id];
+  if (!partida) {
+    return res.status(404).json({ mensaje: 'Partida no encontrada.' });
   }
-  res.json({ mensaje: 'Unido con éxito a la partida' });
+  res.json(partida);
 });
 
-// ⬇️ Este es el final correcto ⬇️
-server.listen(PORT, () => {
+// Iniciar el servidor
+app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
