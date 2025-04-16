@@ -1,7 +1,6 @@
 {
   "name": "dominate-server",
   "version": "1.0.0",
-  "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,19 +8,5 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.4"
-  },
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Novabitgames/dominate-server.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Novabitgames/dominate-server/issues"
-  },
-  "homepage": "https://github.com/Novabitgames/dominate-server#readme"
+  }
 }
